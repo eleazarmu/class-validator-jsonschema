@@ -70,9 +70,11 @@ export function validationMetadatasToSchemas(userOptions?: Partial<IOptions>) {
       target.name
     )
   })
+  
+  if (options.populateReferences) {
+    generateDefinitions(schemas)
+  }
 
-  generateDefinitions(schemas)
-  console.log(schemas)
   return schemas
 }
 
