@@ -71,7 +71,42 @@ export function validationMetadatasToSchemas(userOptions?: Partial<IOptions>) {
     )
   })
 
+  generateDefinitions(schemas)
+  console.log(schemas)
   return schemas
+}
+
+function generateDefinitions(obj: SchemaObject) {
+  Object.keys(obj).forEach(key => {
+    const refs = new Set<string>()
+    getReferences(obj[key], refs)
+    if (refs.size > 0) {
+      const schemaDefinitions: { [key: string]: SchemaObject } = {}
+      refs.forEach(k => {
+        if (obj.hasOwnProperty(k)) {
+          schemaDefinitions[k] = obj[k]
+        }
+      })
+      if (Object.keys(schemaDefinitions).length > 0) {
+        obj[key]['definitions'] = schemaDefinitions
+      }
+    }
+
+  })
+}
+
+function getReferences(obj: SchemaObject, refs: Set<string>) {
+  Object.keys(obj).forEach(key => {
+    if (key === '$ref') {
+      let val = obj[key]
+      const splitVal = val.split('/')
+      const refsSchema = splitVal[splitVal.length - 1]
+      refs.add(refsSchema)
+    }
+    if (typeof obj[key] === 'object') {
+      getReferences(obj[key], refs)
+    }
+  })
 }
 
 /**
