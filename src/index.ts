@@ -71,42 +71,53 @@ export function validationMetadatasToSchemas(userOptions?: Partial<IOptions>) {
     )
   })
   
-  if (options.populateReferences) {
-    generateDefinitions(schemas)
+  if (options.resolveReferences) {
+    return generateDefinitions(schemas, options.refPointerPrefix)
   }
 
   return schemas
 }
 
-function generateDefinitions(obj: SchemaObject) {
-  Object.keys(obj).forEach(key => {
+/**
+ * Adds definitions field with referenced schemas 
+ * Supporting 1 level references
+ */
+function generateDefinitions(schemas: SchemaObject, refPointerPrefix: string): SchemaObject {
+  const schemaCopy = JSON.parse(JSON.stringify(schemas))
+  const refSplit = refPointerPrefix.split('/')
+  if (refSplit.length != 3) {
+    return schemas
+  }
+  Object.keys(schemas).forEach(key => {
     const refs = new Set<string>()
-    getReferences(obj[key], refs)
+    getReferences(schemas[key], refs)
     if (refs.size > 0) {
       const schemaDefinitions: { [key: string]: SchemaObject } = {}
       refs.forEach(k => {
-        if (obj.hasOwnProperty(k)) {
-          schemaDefinitions[k] = obj[k]
+        if (schemas.hasOwnProperty(k)) {
+          schemaDefinitions[k] = schemas[k]
         }
       })
       if (Object.keys(schemaDefinitions).length > 0) {
-        obj[key]['definitions'] = schemaDefinitions
+        schemaCopy[key][refSplit[1]] = schemaDefinitions
       }
     }
-
   })
+  return schemaCopy
 }
 
-function getReferences(obj: SchemaObject, refs: Set<string>) {
-  Object.keys(obj).forEach(key => {
+/**
+ * Returns set of schema references for generating definitions
+ */
+function getReferences(schemaProp: SchemaObject, refs: Set<string>) {
+  Object.keys(schemaProp).forEach(key => {
     if (key === '$ref') {
-      let val = obj[key]
-      const splitVal = val.split('/')
+      const splitVal = schemaProp[key].split('/')
       const refsSchema = splitVal[splitVal.length - 1]
       refs.add(refsSchema)
     }
-    if (typeof obj[key] === 'object') {
-      getReferences(obj[key], refs)
+    if (typeof schemaProp[key] === 'object') {
+      getReferences(schemaProp[key], refs)
     }
   })
 }

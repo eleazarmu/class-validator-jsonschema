@@ -42,10 +42,10 @@ export interface IOptions extends ValidatorOptions {
   schemaNameField: string
 
   /**
-   * Flag for auto generating definitiosn for ref pointers
+   * Flag for auto generating definitions for ref pointers
    * Default is false
    */
-  populateReferences: boolean
+  resolveReferences: boolean
 }
 
 export const defaultOptions: IOptions = {
@@ -53,5 +53,5 @@ export const defaultOptions: IOptions = {
   classValidatorMetadataStorage: getMetadataStorage(),
   refPointerPrefix: '#/definitions/',
   schemaNameField: 'name',
-  populateReferences: false,
+  resolveReferences: false,
 }
