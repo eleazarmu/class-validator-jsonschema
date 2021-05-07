@@ -70,8 +70,56 @@ export function validationMetadatasToSchemas(userOptions?: Partial<IOptions>) {
       target.name
     )
   })
+  
+  if (options.resolveReferences) {
+    return generateDefinitions(schemas, options.refPointerPrefix)
+  }
 
   return schemas
+}
+
+/**
+ * Adds definitions field with referenced schemas 
+ * Supporting 1 level references
+ */
+function generateDefinitions(schemas: SchemaObject, refPointerPrefix: string): SchemaObject {
+  const schemaCopy = JSON.parse(JSON.stringify(schemas))
+  const refSplit = refPointerPrefix.split('/')
+  if (refSplit.length != 3) {
+    return schemas
+  }
+  Object.keys(schemas).forEach(key => {
+    const refs = new Set<string>()
+    getReferences(schemas[key], refs)
+    if (refs.size > 0) {
+      const schemaDefinitions: { [key: string]: SchemaObject } = {}
+      refs.forEach(k => {
+        if (schemas.hasOwnProperty(k)) {
+          schemaDefinitions[k] = schemas[k]
+        }
+      })
+      if (Object.keys(schemaDefinitions).length > 0) {
+        schemaCopy[key][refSplit[1]] = schemaDefinitions
+      }
+    }
+  })
+  return schemaCopy
+}
+
+/**
+ * Returns set of schema references for generating definitions
+ */
+function getReferences(schemaProp: SchemaObject, refs: Set<string>) {
+  Object.keys(schemaProp).forEach(key => {
+    if (key === '$ref') {
+      const splitVal = schemaProp[key].split('/')
+      const refsSchema = splitVal[splitVal.length - 1]
+      refs.add(refsSchema)
+    }
+    if (typeof schemaProp[key] === 'object') {
+      getReferences(schemaProp[key], refs)
+    }
+  })
 }
 
 /**

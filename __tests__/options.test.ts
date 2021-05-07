@@ -33,6 +33,17 @@ class Post {
   user: User
 }
 
+// @ts-ignore: not referenced
+class PostUser {
+  @IsOptional()
+  @ValidateNested()
+  post: Post
+
+  @IsOptional()
+  @ValidateNested()
+  user: User
+}
+
 const metadata = _get(getFromContainer(MetadataStorage), 'validationMetadatas')
 const defaultSchemas = validationMetadatasToSchemas(metadata)
 
@@ -103,5 +114,82 @@ describe('options', () => {
     })
     expect(schemas.User.required).toEqual(['id'])
     expect(defaultSchemas.Post).not.toHaveProperty('required')
+  })
+
+  it('doubly nested and multiple nested class with resolveReferences as true', () => {
+    const schemas = validationMetadatasToSchemas({
+      resolveReferences: true,
+    })
+    expect(schemas.PostUser).toEqual({
+      definitions: {
+        User: {
+          properties: {
+            email: { format: 'email', type: 'string' },
+            id: {
+              type: 'string',
+              not: { type: 'null' },
+            },
+            tags: {
+              items: { type: 'string', maxLength: 20 },
+              type: 'array',
+            },
+          },
+          required: ['id', 'email'],
+          type: 'object',
+        },
+        Post: {
+          properties: {
+            user: {
+              $ref: '#/definitions/User',
+            },
+          },
+          type: 'object',
+        },
+      },
+      properties: {
+        user: { $ref: '#/definitions/User' },
+        post: { $ref: '#/definitions/Post' },
+      },
+      type: 'object',
+    })
+  })
+
+  it('custom ref pointer with resolveReferences as true', () => {
+    const schemas = validationMetadatasToSchemas({
+      resolveReferences: true,
+      refPointerPrefix: "#/customName/"
+    })
+    expect(schemas.PostUser).toEqual({
+      customName: {
+        User: {
+          properties: {
+            email: { format: 'email', type: 'string' },
+            id: {
+              type: 'string',
+              not: { type: 'null' },
+            },
+            tags: {
+              items: { type: 'string', maxLength: 20 },
+              type: 'array',
+            },
+          },
+          required: ['id', 'email'],
+          type: 'object',
+        },
+        Post: {
+          properties: {
+            user: {
+              $ref: '#/customName/User',
+            },
+          },
+          type: 'object',
+        },
+      },
+      properties: {
+        user: { $ref: '#/customName/User' },
+        post: { $ref: '#/customName/Post' },
+      },
+      type: 'object',
+    })
   })
 })
